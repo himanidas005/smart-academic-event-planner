@@ -10,9 +10,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# --------------------------
-# Title Section
-# --------------------------
 st.title("Smart Academic Event Planning Using Student Feedback Analytics")
 
 st.write(
@@ -61,7 +58,7 @@ if st.button("Submit Feedback"):
         st.success("Feedback submitted successfully!")
 
 # --------------------------
-# Analytics Dashboard
+# AI Recommendation Logic
 # --------------------------
 st.subheader("Analytics Dashboard")
 
@@ -79,7 +76,7 @@ if st.session_state.feedback_list:
         "workshop", "training", "seminar",
         "improvement", "improving",
         "basic", "advanced", "help",
-        "please", "like", "more"
+        "like", "please", "session"
     ]
 
     # TF-IDF keyword extraction
@@ -103,7 +100,7 @@ if st.session_state.feedback_list:
         ascending=False
     ).head(10)
 
-    # Better workshop recommendation
+    # Better recommendation logic
     top_topics = keyword_df.head(2)["topic"].tolist()
     recommended_topic = " & ".join(
         [topic.title() for topic in top_topics]
