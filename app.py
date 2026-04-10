@@ -1,25 +1,31 @@
 import streamlit as st
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Page config
+# --------------------------
+# Page Config
+# --------------------------
 st.set_page_config(
     page_title="Smart Academic Event Planner",
     layout="wide"
 )
 
-# Title
 st.title("Smart Academic Event Planning Using Student Feedback Analytics")
 
 st.write(
-    "This AI-based system collects student learning preferences "
-    "and recommends workshops based on majority interest."
+    "This AI-based system analyzes student learning interests "
+    "and recommends the most suitable workshop topic."
 )
 
-# Initialize session state
-if "feedback_counts" not in st.session_state:
-    st.session_state.feedback_counts = {}
+# --------------------------
+# Session State
+# --------------------------
+if "feedback_list" not in st.session_state:
+    st.session_state.feedback_list = []
 
-# Student input form
+# --------------------------
+# Student Form
+# --------------------------
 st.subheader("Student Feedback Form")
 
 student_name = st.text_input("Enter Student Name")
@@ -34,8 +40,6 @@ skill_level = st.selectbox(
     ["Beginner", "Intermediate", "Advanced"]
 )
 
-topic = st.text_input("Enter Learning Topic (Example: DSA, ML, SQL)")
-
 comment = st.text_area(
     "Describe what you want to learn or improve"
 )
@@ -45,28 +49,55 @@ preferred_mode = st.selectbox(
     ["Workshop", "Seminar", "Training", "Bootcamp"]
 )
 
-# Submit button
+# --------------------------
+# Submit Feedback
+# --------------------------
 if st.button("Submit Feedback"):
-    if topic.strip():
-        topic_name = topic.strip().title()
-
-        if topic_name in st.session_state.feedback_counts:
-            st.session_state.feedback_counts[topic_name] += 1
-        else:
-            st.session_state.feedback_counts[topic_name] = 1
-
+    if comment.strip():
+        st.session_state.feedback_list.append(comment.strip())
         st.success("Feedback submitted successfully!")
 
-# Analytics dashboard
+# --------------------------
+# AI Recommendation Logic
+# --------------------------
 st.subheader("Analytics Dashboard")
 
-if st.session_state.feedback_counts:
-    feedback_series = pd.Series(st.session_state.feedback_counts)
+if st.session_state.feedback_list:
 
-    st.bar_chart(feedback_series)
+    feedback_df = pd.DataFrame(
+        st.session_state.feedback_list,
+        columns=["feedback"]
+    )
 
-    recommended_topic = feedback_series.idxmax()
+    # TF-IDF keyword extraction
+    vectorizer = TfidfVectorizer(stop_words="english")
+    X = vectorizer.fit_transform(feedback_df["feedback"])
 
-    st.metric("Recommended Workshop", recommended_topic)
+    word_scores = X.sum(axis=0).A1
+    words = vectorizer.get_feature_names_out()
+
+    keyword_df = pd.DataFrame({
+        "topic": words,
+        "count": word_scores
+    })
+
+    keyword_df = keyword_df.sort_values(
+        by="count",
+        ascending=False
+    ).head(10)
+
+    # Recommended workshop
+    recommended_topic = keyword_df.iloc[0]["topic"].title()
+
+    st.metric(
+        "Recommended Workshop",
+        f"{recommended_topic} Workshop"
+    )
+
+    # Dynamic chart
+    chart_data = keyword_df.set_index("topic")["count"]
+
+    st.bar_chart(chart_data)
+
 else:
     st.info("No feedback submitted yet.")
