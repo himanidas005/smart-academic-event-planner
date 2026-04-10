@@ -10,6 +10,9 @@ st.set_page_config(
     layout="wide"
 )
 
+# --------------------------
+# Title Section
+# --------------------------
 st.title("Smart Academic Event Planning Using Student Feedback Analytics")
 
 st.write(
@@ -58,7 +61,7 @@ if st.button("Submit Feedback"):
         st.success("Feedback submitted successfully!")
 
 # --------------------------
-# AI Recommendation Logic
+# Analytics Dashboard
 # --------------------------
 st.subheader("Analytics Dashboard")
 
@@ -69,21 +72,22 @@ if st.session_state.feedback_list:
         columns=["feedback"]
     )
 
+    # Custom stop words
+    custom_stop_words = [
+        "want", "need", "improve", "learn",
+        "interested", "skills", "skill",
+        "workshop", "training", "seminar",
+        "improvement", "improving",
+        "basic", "advanced", "help",
+        "please", "like", "more"
+    ]
+
     # TF-IDF keyword extraction
-   custom_stop_words = [
-    "want", "need", "improve", "learn",
-    "interested", "skills", "skill",
-    "workshop", "training", "seminar",
-    "improvement", "improving",
-    "basic", "advanced", "help"
-]
+    vectorizer = TfidfVectorizer(
+        stop_words=custom_stop_words,
+        ngram_range=(1, 2)
+    )
 
-vectorizer = TfidfVectorizer(
-    stop_words=custom_stop_words,
-    ngram_range=(1, 2)
-)
-
-X = vectorizer.fit_transform(feedback_df["feedback"])
     X = vectorizer.fit_transform(feedback_df["feedback"])
 
     word_scores = X.sum(axis=0).A1
@@ -99,8 +103,11 @@ X = vectorizer.fit_transform(feedback_df["feedback"])
         ascending=False
     ).head(10)
 
-    # Recommended workshop
-    recommended_topic = keyword_df.iloc[0]["topic"].title()
+    # Better workshop recommendation
+    top_topics = keyword_df.head(2)["topic"].tolist()
+    recommended_topic = " & ".join(
+        [topic.title() for topic in top_topics]
+    )
 
     st.metric(
         "Recommended Workshop",
