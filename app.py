@@ -70,7 +70,20 @@ if st.session_state.feedback_list:
     )
 
     # TF-IDF keyword extraction
-    vectorizer = TfidfVectorizer(stop_words="english")
+   custom_stop_words = [
+    "want", "need", "improve", "learn",
+    "interested", "skills", "skill",
+    "workshop", "training", "seminar",
+    "improvement", "improving",
+    "basic", "advanced", "help"
+]
+
+vectorizer = TfidfVectorizer(
+    stop_words=custom_stop_words,
+    ngram_range=(1, 2)
+)
+
+X = vectorizer.fit_transform(feedback_df["feedback"])
     X = vectorizer.fit_transform(feedback_df["feedback"])
 
     word_scores = X.sum(axis=0).A1
