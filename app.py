@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 # --------------------------
 # Page Config
@@ -13,15 +12,15 @@ st.set_page_config(
 st.title("Smart Academic Event Planning Using Student Feedback Analytics")
 
 st.write(
-    "This AI-based system analyzes student learning interests "
-    "and recommends the most suitable workshop topic."
+    "This AI-based system collects student preferred learning topics "
+    "and recommends workshops based on majority demand."
 )
 
 # --------------------------
 # Session State
 # --------------------------
-if "feedback_list" not in st.session_state:
-    st.session_state.feedback_list = []
+if "topic_counts" not in st.session_state:
+    st.session_state.topic_counts = {}
 
 # --------------------------
 # Student Form
@@ -40,8 +39,14 @@ skill_level = st.selectbox(
     ["Beginner", "Intermediate", "Advanced"]
 )
 
+# NEW MAIN INPUT
+topic_name = st.text_input(
+    "Enter Topic Name (Example: DSA, UI/UX, Machine Learning)"
+)
+
+# Optional detailed comment
 comment = st.text_area(
-    "Describe what you want to learn or improve"
+    "Optional: Describe what you want to learn"
 )
 
 preferred_mode = st.selectbox(
@@ -53,66 +58,41 @@ preferred_mode = st.selectbox(
 # Submit Feedback
 # --------------------------
 if st.button("Submit Feedback"):
-    if comment.strip():
-        st.session_state.feedback_list.append(comment.strip())
+    if topic_name.strip():
+        topic = topic_name.strip().title()
+
+        if topic in st.session_state.topic_counts:
+            st.session_state.topic_counts[topic] += 1
+        else:
+            st.session_state.topic_counts[topic] = 1
+
         st.success("Feedback submitted successfully!")
 
 # --------------------------
-# AI Recommendation Logic
+# Analytics Dashboard
 # --------------------------
 st.subheader("Analytics Dashboard")
 
-if st.session_state.feedback_list:
+if st.session_state.topic_counts:
 
-    feedback_df = pd.DataFrame(
-        st.session_state.feedback_list,
-        columns=["feedback"]
+    topic_df = pd.DataFrame(
+        list(st.session_state.topic_counts.items()),
+        columns=["Topic", "Count"]
     )
 
-    # Custom stop words
-    custom_stop_words = [
-        "want", "need", "improve", "learn",
-        "interested", "skills", "skill",
-        "workshop", "training", "seminar",
-        "improvement", "improving",
-        "basic", "advanced", "help",
-        "like", "please", "session"
-    ]
-
-    # TF-IDF keyword extraction
-    vectorizer = TfidfVectorizer(
-        stop_words=custom_stop_words,
-        ngram_range=(1, 2)
-    )
-
-    X = vectorizer.fit_transform(feedback_df["feedback"])
-
-    word_scores = X.sum(axis=0).A1
-    words = vectorizer.get_feature_names_out()
-
-    keyword_df = pd.DataFrame({
-        "topic": words,
-        "count": word_scores
-    })
-
-    keyword_df = keyword_df.sort_values(
-        by="count",
+    topic_df = topic_df.sort_values(
+        by="Count",
         ascending=False
-    ).head(10)
-
-    # Better recommendation logic
-    top_topics = keyword_df.head(2)["topic"].tolist()
-    recommended_topic = " & ".join(
-        [topic.title() for topic in top_topics]
     )
+
+    recommended_topic = topic_df.iloc[0]["Topic"]
 
     st.metric(
         "Recommended Workshop",
         f"{recommended_topic} Workshop"
     )
 
-    # Dynamic chart
-    chart_data = keyword_df.set_index("topic")["count"]
+    chart_data = topic_df.set_index("Topic")["Count"]
 
     st.bar_chart(chart_data)
 
